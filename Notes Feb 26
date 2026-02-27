@@ -1,0 +1,10 @@
+1 AEM Code sync uses DA by default if no fstab
+creates config org and site that doesn't have an fstab!!!!
+
+2 Boilerplage has no fstab by default
+
+3 Cloud Manager 1-click EDS site provisioning now installed code sync
+	Provision an EDS site with one click
+	
+
+npm run build:json
