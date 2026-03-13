@@ -8,3 +8,158 @@ creates config org and site that doesn't have an fstab!!!!
 	
 
 npm run build:json
+
+ue1 = EDS_UE CHUB
+ue2 = Manage Deliver Feb 19 
+ue3 = Cohort
+
+Practical guidance
+If your goal is:
+
+Gradual move to UE/EDS
+
+Keep existing sections on Page Editor.
+Stand up new sections (blog, campaigns, microsites) on UE/EDS.
+Unify navigation/branding at the design/CDN level.
+Single page “hybrid”
+
+Today: don’t do it. Use separate pages and route between them instead.
+If you absolutely must embed, treat the “other” stack as an external app (iframe/remote app) and accept that authors will edit that piece in its own editor, not as one seamless UE + Page Editor experience.
+
+
+A single EDS setup can absolutely host:
+Site A: doc-based authoring
+Site B: UE/AEM authoring
+(and even other sources like CFs or headless)
+This is the intended flexibility of EDS authoring modes.
+– Crosswalk - Documentation
+– [EDS] [Publish] Choosing the right Authoring in Edge Delivery Services
+
+One GitHub repo can absolutely support DA Live, UE, and Google Docs — at the same time.
+The constraint is per EDS project/site: one configured content source.
+To mix all three, you create multiple EDS sites/projects that:
+share the same GitHub repo for blocks and styling;
+point to different content sources (AEM/UE, Google, DA).
+If you describe how many “sites” you actually need (paths/domains), I can sketch the concrete config layout (which sites, which content sources, how to share the repo cleanly).
+
+
+# Read a site config
+GET  https://admin.hlx.page/config/{org}/sites/{site}.json
+
+# Create/update a site config
+POST https://admin.hlx.page/config/{org}/sites/{site}.json
+
+# Manage org-level admins
+GET  https://admin.hlx.page/config/{org}.json
+POST https://admin.hlx.page/config/{org}/users.json
+
+
+Authoring mode (DA / Docs / UE) is decoupled from delivery.
+Edge Delivery + Adobe Managed CDN is what’s onboarded in Cloud Manager.
+Once the Edge Delivery site is registered, any content source (DA, Docs, UE) feeding that site rides over the same Fastly‑backed Adobe Managed CDN.
+
+Short answer
+Yes.
+You can absolutely:
+
+Set up your GitHub repo and get .page / .live working (UE, DA, Docs, etc.) first, and then
+Later onboard that same Edge Delivery site into Cloud Manager to attach Adobe Managed CDN + domains + SSL.
+This is exactly the “existing EDS project → onboard into Cloud Manager” path described in the docs. Edge Delivery Services go‑live with your site, AEMaaCS Edge Delivery Services in Cloud Manager, Add an Edge Delivery site to Cloud Manager
+
+The authoring mode (UE/AEM, Google/SharePoint Docs, DA.Live) does not change the onboarding flow.
+
+How the flow looks in practice
+Phase 1 – Stand up the EDS site on aem.live
+
+You’ve already done (or plan to do) this:
+
+Create repo from boilerplate (UE or doc‑based).
+
+Install AEM Code Sync, configure fstab.yaml / paths.json.
+
+Connect to AEM (for UE) or Docs/DA (for doc‑authoring).
+
+Get preview/live URLs like:
+
+
+Copy
+https://main--<repo>--<owner>.aem.page
+https://main--<repo>--<owner>.aem.live
+References: Create an Edge Delivery Services code project, Getting Started – Universal Editor Developer Tutorial
+
+Phase 2 – Later, onboard that existing site into Cloud Manager
+
+Once the customer has an EDS license and a Cloud Manager program with Edge Delivery enabled, you:
+
+Open Cloud Manager → Program → Edge Delivery tab
+
+Requires a program with the Edge Delivery entitlement. Introduction to Edge Delivery Services in Cloud Manager, Cloud Manager Self‑service access to Edge Delivery Services and Adobe Managed CDN
+Add the existing Edge Delivery site
+
+Click Add Edge Delivery site.
+Provide:
+Site name (label in CM)
+
+Edge Delivery origin → your current .aem.live URL, e.g.:
+
+
+Copy
+https://main--<repo>--<owner>.aem.live
+Optional description. Add an Edge Delivery site to Cloud Manager
+
+Verify repo ownership (one‑time)
+
+Cloud Manager generates a token + path:
+
+Add file in your repo:
+
+
+Copy
+well-known/adobe/cloudmanager-challenge.txt
+(note: well-known, no dot) AEMaaCS Edge Delivery Services in Cloud Manager
+
+Put CM‑provided token in that file.
+
+Commit to main and click Verify.
+
+When CM can read that file at your .aem.page URL, the site shows a green check. Add an Edge Delivery site to Cloud Manager, Cloud Manager - Support for EDS sites - AR
+
+Attach domain + SSL + Adobe Managed CDN
+
+From the same program:
+
+Add Domain (e.g. www.example.com) in Cloud Manager.
+Add SSL certificate (Adobe‑managed DV or your own OV/EV).
+Create Domain Mapping:
+CDN type: Adobe Managed CDN
+Origin: your Edge Delivery site entry (backed by your .aem.live origin) AEMaaCS Edge Delivery Services in Cloud Manager, Edge Delivery Services deployment options in Adobe Managed CDN (in Cloud Manager)
+Finally, update DNS to CNAME your domain to Adobe’s edge hostname (e.g. cdn.adobeaemcloud.com). Cloud Manager Self‑service access to Edge Delivery Services and Adobe Managed CDN
+
+At this point:
+
+Your .aem.page / .aem.live URLs keep working as before.
+https://www.example.com is served via Adobe Managed (Fastly) CDN, fronting that same origin.
+Does it matter if the site uses UE vs Docs vs DA?
+No.
+
+Cloud Manager and the CDN see only:
+
+the Edge Delivery origin (main--repo--owner.aem.live) and
+your domains + SSL.
+Whether that origin is fed by:
+
+UE + AEM Author, or
+Doc Authoring (GDrive/SharePoint), or
+DA.Live / Author Bus
+…is irrelevant to the onboarding + CDN mapping flow. Crosswalk - Documentation - General (title tbd), Edge Delivery Services - Delivery Runbooks
+
+Key constraints to keep in mind
+You must have an Edge Delivery Services license to use the Cloud Manager + Adobe Managed CDN route; otherwise, you stay in BYO CDN land pointing directly at .aem.live. Cloud Manager Self‑service access to Edge Delivery Services and Adobe Managed CDN
+Onboarding an existing repo/site is a first‑class path (“Add existing Edge Delivery site”) – you don’t have to recreate the site from scratch. Add an Edge Delivery site to Cloud Manager, Edge Delivery Services go‑live with your site
+If you tell me your actual origin (e.g. main--myrepo--myorg.aem.live) I can outline the exact CM fields and DNS record you’d set for that site.
+
+
+
+
+
+
